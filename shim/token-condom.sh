@@ -17,16 +17,21 @@
 [ "${TOKEN_CONDOM:-1}" = "0" ] && return 0 2>/dev/null || true
 command -v node >/dev/null 2>&1 || return 0 2>/dev/null || true
 
-TC_BIN="${TOKEN_CONDOM_BIN:-/home/roni/Roni_workspace/token-condom/bin/token-condom.js}"
+export TC_BIN="${TOKEN_CONDOM_BIN:-/home/roni/Roni_workspace/token-condom/bin/token-condom.js}"
 [ -f "$TC_BIN" ] || return 0 2>/dev/null || true
+
+# Helper names carry no leading underscore on purpose: Claude Code's shell snapshot drops
+# underscore-prefixed functions, which left the wrappers below calling a missing tc_run.
+# tc_run also re-checks its own preconditions, because a snapshot restores the functions
+# without re-running the guards above.
 
 # The full command string bash was asked to run (this shell's own argv), so pipe detection
 # sees the real command line rather than the function's own arguments.
-_tc_cmdline() { tr '\0' ' ' < "/proc/$$/cmdline" 2>/dev/null; }
+tc_cmdline() { tr '\0' ' ' < "/proc/$$/cmdline" 2>/dev/null; }
 
-_tc_bypass() {
+tc_bypass() {
   local c
-  c="$(_tc_cmdline)"
+  c="$(tc_cmdline)"
   # Only agent tool invocations (`bash -c "<one command>"`). A script run as `bash foo.sh`
   # is NOT wrapped: those parse their own command output and a reshaped line would break them.
   case "$c" in
@@ -40,50 +45,51 @@ _tc_bypass() {
   return 1
 }
 
-# _tc_run <kind> <tool> <args...>
-_tc_run() {
+# tc_run <kind> <tool> <args...>
+tc_run() {
   local kind="$1" tool="$2"; shift 2
-  if _tc_bypass; then
+  local bin="${TC_BIN:-${TOKEN_CONDOM_BIN:-/home/roni/Roni_workspace/token-condom/bin/token-condom.js}}"
+  if [ "${TOKEN_CONDOM:-1}" = "0" ] || [ ! -f "$bin" ] || ! command -v node >/dev/null 2>&1 || tc_bypass; then
     command "$tool" "$@"
     return $?
   fi
-  command "$tool" "$@" | node "$TC_BIN" compress --kind "$kind" --tool "$tool" 2>/dev/null
+  command "$tool" "$@" | node "$bin" compress --kind "$kind" --tool "$tool" 2>/dev/null
   return ${PIPESTATUS[0]}
 }
 
 git() {
   case "$1" in
-    status)  _tc_run gitstatus git "$@" ;;
-    diff)    _tc_run diff      git "$@" ;;
-    log)     _tc_run gitlog    git "$@" ;;
-    show)    _tc_run diff      git "$@" ;;
+    status)  tc_run gitstatus git "$@" ;;
+    diff)    tc_run diff      git "$@" ;;
+    log)     tc_run gitlog    git "$@" ;;
+    show)    tc_run diff      git "$@" ;;
     *)       command git "$@" ;;
   esac
 }
 
-ls()   { _tc_run text ls "$@"; }
-find() { _tc_run text find "$@"; }
-ps()   { _tc_run text ps "$@"; }
-df()   { _tc_run text df "$@"; }
-du()   { _tc_run text du "$@"; }
-journalctl() { _tc_run log journalctl "$@"; }
+ls()   { tc_run text ls "$@"; }
+find() { tc_run text find "$@"; }
+ps()   { tc_run text ps "$@"; }
+df()   { tc_run text df "$@"; }
+du()   { tc_run text du "$@"; }
+journalctl() { tc_run log journalctl "$@"; }
 
-pytest() { _tc_run tests pytest "$@"; }
+pytest() { tc_run tests pytest "$@"; }
 npm() {
   case "$1" in
-    test|run) _tc_run tests npm "$@" ;;
+    test|run) tc_run tests npm "$@" ;;
     *) command npm "$@" ;;
   esac
 }
 cargo() {
   case "$1" in
-    test|build|check) _tc_run tests cargo "$@" ;;
+    test|build|check) tc_run tests cargo "$@" ;;
     *) command cargo "$@" ;;
   esac
 }
 docker() {
   case "$1" in
-    ps|logs) _tc_run log docker "$@" ;;
+    ps|logs) tc_run log docker "$@" ;;
     *) command docker "$@" ;;
   esac
 }
