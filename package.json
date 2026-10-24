@@ -1,0 +1,8 @@
+{
+  "name": "token-condom",
+  "version": "0.1.0",
+  "description": "Compress and dedupe tool output before it enters an agent's context. Lossless outside logs, byte-exact recovery, per-agent ledger.",
+  "bin": { "token-condom": "bin/token-condom.js", "token-condom-mcp": "bin/tc-mcp.js" },
+  "license": "MIT",
+  "private": true
+}
