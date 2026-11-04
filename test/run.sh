@@ -35,7 +35,7 @@ printf 'def a():\n    return 1\n' > "$STATE/s.py"
 node "$BIN" compress --file "$STATE/s.py" > "$STATE/s.out"
 if cmp -s "$STATE/s.py" "$STATE/s.out"; then ok "source untouched"; else bad "source was modified"; fi
 
-node "$BIN" read bin/lib/read.js > "$STATE/r.out"
+node "$BIN" read src/read.ts > "$STATE/r.out"
 if grep -q "symbols" "$STATE/r.out"; then ok "read returns an outline"; else bad "read returned no outline"; fi
 
 printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \

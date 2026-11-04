@@ -2,7 +2,19 @@
   "name": "token-condom",
   "version": "0.1.0",
   "description": "Compress and dedupe tool output before it enters an agent's context. Lossless outside logs, byte-exact recovery, per-agent ledger.",
-  "bin": { "token-condom": "bin/token-condom.js", "token-condom-mcp": "bin/tc-mcp.js" },
+  "bin": {
+    "token-condom": "bin/token-condom.js",
+    "token-condom-mcp": "bin/tc-mcp.js"
+  },
   "license": "MIT",
-  "private": true
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "bash test/run.sh"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
 }
